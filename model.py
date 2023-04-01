@@ -1,3 +1,11 @@
+'''
+Implementation Reference : 
+1. Paper : 'Attention is all you need' by Vaswani
+2. Medium Article by Alessandro Lamberti, titled : 'ViT — VisionTransformer, a Pytorch implementation'
+
+'''
+
+
 from einops.layers.torch import Rearrange, Reduce
 from einops import rearrange, reduce, repeat
 from torchvision.transforms import Compose, Resize, ToTensor
@@ -99,5 +107,37 @@ class TransformerEncoder(nn.Module):
         out = self.ln2(x+out)
 
         return out
+    
+class VIT(nn.Module):
+    def __init__(self, 
+                 embed_size: int = 786, 
+                 ff_dropout: float = 0.2, 
+                 z: int = 5, 
+                 num_heads: int = 8, 
+                 num_patches: int = 4, 
+                 in_size: int = 32, 
+                 L: int = 12, 
+                 num_classes: int = 3, 
+                 in_channels: int = 5) -> None:
+        super(VIT, self).__init__()
+        self.patch_embedding = PatchEmbedding(in_channels=in_channels, embed_size=embed_size, in_size=in_size, num_patches=num_patches)
+        self.transformer_encoders = nn.Sequential()
+
+        for i in range(L):
+            self.transformer_encoders.append(TransformerEncoder(embed_size=embed_size, ff_dropout=ff_dropout, in_size=in_size, num_heads=num_heads, num_patches=num_patches, z=z))
+
+        self.classificationHead = nn.Sequential(
+            Reduce('b n e -> b e', 'mean'), # takes the mean along the 1st dimension
+            nn.LayerNorm(embed_size),
+            nn.Linear(embed_size, num_classes),     
+            # Can an additional hidden layer be added here ?
+        )
+
+    def forward(self, x):
+        x = self.patch_embedding(x)
+        x = self.transformer_encoders(x)
+        x = self.classificationHead(x)
+
+        return x
     
 
