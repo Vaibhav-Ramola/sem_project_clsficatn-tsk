@@ -38,6 +38,10 @@ class PatchEmbedding(nn.Module):
         return out
     
 class MSA(nn.Module):
+    '''
+    1. Add dropout
+    2. 
+    '''
     def __init__(self, embed_size: int = 786, num_heads: int = 8) -> None:
         super(MSA, self).__init__()
         self.embed_size = embed_size
@@ -59,3 +63,41 @@ class MSA(nn.Module):
 
         return out
     
+class FeedFwd(nn.Module):
+    def __init__(self, embed_size: int = 786, z: int = 5, dropout: float = 0.2) -> None:
+        super(FeedFwd, self).__init__()
+        self.embed_size = embed_size
+        self.z = z
+        self.feedFwd = nn.Sequential(
+            nn.Linear(embed_size, z * embed_size),
+            nn.BatchNorm1d(z * embed_size),
+            # Should batchnorm be appllied here as we'll take layer norm later ?
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(z * embed_size, embed_size),
+        )
+    
+    def forward(self, x):
+         return self.feedFwd(x)
+    
+
+class TransformerEncoder(nn.Module):
+    def __init__(self, embed_size: int = 786, ff_dropout: float = 0.2, z: int = 5, num_heads: int = 8, num_patches: int = 4, in_size: int = 32) -> None:
+        super(TransformerEncoder, self).__init__()
+        self.msa = MSA(embed_size=embed_size, num_heads=num_heads)
+        self.feedForward = FeedFwd(embed_size=embed_size, dropout=ff_dropout, z=z)
+        self.ln1 = nn.LayerNorm(embed_size)
+        # Do I have to use a different initialized layer norm object 
+        # or can I use the previous one ? 
+        self.ln2 = nn.LayerNorm(embed_size)
+
+    def forward(self, x):
+        out = self.msa(x)
+        out = self.ln1(out+x)
+        x = out
+        out = self.feedForward(out)
+        out = self.ln2(x+out)
+
+        return out
+    
+
