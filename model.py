@@ -36,3 +36,26 @@ class PatchEmbedding(nn.Module):
         out += self.position_embedding
         # the sum propagates to all batches i.e. dim=0
         return out
+    
+class MSA(nn.Module):
+    def __init__(self, embed_size: int = 786, num_heads: int = 8) -> None:
+        super(MSA, self).__init__()
+        self.embed_size = embed_size
+        self.num_heads = num_heads
+        self.qkv = nn.Linear(embed_size, 3 * embed_size)
+        self.rearg = Rearrange('b n (h qkv e) -> b qkv h n e', h=num_heads, qkv=3)
+        self.linear = nn.Linear(self.embed_size, self.embed_size)
+    
+    def forward(self, x):
+        qkv = self.qkv(x)
+        queries, keys, values = qkv[0], qkv[1], qkv[2]
+
+        attention = torch.einsum('bhqd bhkd -> bhqk', queries, keys)
+        softmax_attention = F.softmax(attention, dim=-1) // (self.embed_size ** (1/2))
+        # dim = -1 means apply softmax along the last dimension i.e. along the columns
+        context = torch.einsum('bhql bhld -> bhqd', softmax_attention, values)
+        context = rearrange(context, 'b h v d -> b v (h d)')
+        out = self.linear(context)
+
+        return out
+    
