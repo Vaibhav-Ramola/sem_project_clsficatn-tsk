@@ -2,7 +2,6 @@
 Implementation Reference : 
 1. Paper : 'Attention is all you need' by Vaswani
 2. Medium Article by Alessandro Lamberti, titled : 'ViT — VisionTransformer, a Pytorch implementation'
-
 '''
 
 
