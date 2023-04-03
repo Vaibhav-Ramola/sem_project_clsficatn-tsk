@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 
 class PatchEmbedding(nn.Module):
-    def __init__(self, in_channels: int = 5, embed_size: int = 786, in_size: int = 32, num_patches: int = 4) -> None:
+    def __init__(self, in_channels: int = 5, embed_size: int = 784, in_size: int = 32, num_patches: int = 4) -> None:
         super(PatchEmbedding, self).__init__()
         self.in_channels = in_channels
         self.embed_size = embed_size
@@ -37,7 +37,7 @@ class PatchEmbedding(nn.Module):
     def forward(self, x):
         b, _, _, _ = x.shape
         out = self.embed(x)
-        cls_token = repeat(self.cls_token, '() s e -> b s e', b = b)
+        cls_token = repeat(self.cls_token, 's e -> b s e', b = b)
         out = torch.cat([cls_token, out], dim=1) 
         # prepending the cls token and output tensor along dim-1
         out += self.position_embedding
@@ -49,7 +49,7 @@ class MSA(nn.Module):
     1. Add dropout
     2. 
     '''
-    def __init__(self, embed_size: int = 786, num_heads: int = 8) -> None:
+    def __init__(self, embed_size: int = 784, num_heads: int = 8) -> None:
         super(MSA, self).__init__()
         self.embed_size = embed_size
         self.num_heads = num_heads
@@ -58,26 +58,28 @@ class MSA(nn.Module):
         self.linear = nn.Linear(self.embed_size, self.embed_size)
     
     def forward(self, x):
+        print(x.shape)
         qkv = self.qkv(x)
+        qkv = self.rearg(qkv)
         queries, keys, values = qkv[0], qkv[1], qkv[2]
-
-        attention = torch.einsum('bhqd bhkd -> bhqk', queries, keys)
+        print(f"Q : {queries.shape}\tK : {keys.shape}")
+        attention = torch.einsum('bhqd,bhkd->bhqk', queries, keys)
         softmax_attention = F.softmax(attention, dim=-1) // (self.embed_size ** (1/2))
         # dim = -1 means apply softmax along the last dimension i.e. along the columns
-        context = torch.einsum('bhql bhld -> bhqd', softmax_attention, values)
+        context = torch.einsum('bhql,bhld->bhqd', softmax_attention, values)
         context = rearrange(context, 'b h v d -> b v (h d)')
         out = self.linear(context)
 
         return out
     
 class FeedFwd(nn.Module):
-    def __init__(self, embed_size: int = 786, z: int = 5, dropout: float = 0.2) -> None:
+    def __init__(self, embed_size: int = 784, z: int = 5, dropout: float = 0.2) -> None:
         super(FeedFwd, self).__init__()
         self.embed_size = embed_size
         self.z = z
         self.feedFwd = nn.Sequential(
             nn.Linear(embed_size, z * embed_size),
-            nn.BatchNorm1d(z * embed_size),
+            # nn.BatchNorm1d(z * embed_size),           // Fix this batch norm ? Can't figure out the issue
             # Should batchnorm be appllied here as we'll take layer norm later ?
             nn.GELU(),
             nn.Dropout(dropout),
@@ -89,7 +91,7 @@ class FeedFwd(nn.Module):
     
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, embed_size: int = 786, ff_dropout: float = 0.2, z: int = 5, num_heads: int = 8, num_patches: int = 4, in_size: int = 32) -> None:
+    def __init__(self, embed_size: int = 784, ff_dropout: float = 0.2, z: int = 5, num_heads: int = 8, num_patches: int = 4, in_size: int = 32) -> None:
         super(TransformerEncoder, self).__init__()
         self.msa = MSA(embed_size=embed_size, num_heads=num_heads)
         self.feedForward = FeedFwd(embed_size=embed_size, dropout=ff_dropout, z=z)
@@ -109,7 +111,7 @@ class TransformerEncoder(nn.Module):
     
 class VIT(nn.Module):
     def __init__(self, 
-                 embed_size: int = 786, 
+                 embed_size: int = 784, 
                  ff_dropout: float = 0.2, 
                  z: int = 5, 
                  num_heads: int = 8, 
@@ -139,4 +141,8 @@ class VIT(nn.Module):
 
         return x
     
-
+if __name__ == '__main__':
+    print('Started')
+    model = VIT()
+    test = torch.randn(size=(3, 5, 32, 32))
+    print(f'output form the model : {model(test)}')
