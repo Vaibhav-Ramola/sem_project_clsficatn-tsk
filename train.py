@@ -5,6 +5,9 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.optim as optim
 from model import VIT
+from dataset import GSQDataset
+import torch.utils.data
+
 
 
 
@@ -21,8 +24,13 @@ IMAGE_WIDTH = 32
 EMBED_SIZE = 786
 PIN_MEMORY = True
 LOAD_MODEL = False
+
+#   ********** Add Paths Below ***********
+
 TRAIN_IMG_DIR = ''
+TRAIN_LABELS = ''
 VAL_IMG_DIR = ''
+VAL_LABELS = ''
 
 
 
@@ -86,7 +94,9 @@ def main():
         lr=LEARNING_RATE,
     )
 
-    train_loader = 
+    dataset = GSQDataset(img_path=TRAIN_IMG_DIR, labels_path=TRAIN_LABELS, transforms=train_transforms)
+    train_set, test_set = torch.utils.data.random_split(dataset, [200000, 39999])
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, pin_memory=PIN_MEMORY)
     scaler = torch.cuda.amp.grad_scaler.GradScaler()
 
     for epoch in range(NUM_EPOCHS):
