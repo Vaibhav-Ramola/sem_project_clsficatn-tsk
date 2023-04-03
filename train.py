@@ -86,8 +86,13 @@ def main():
         lr=LEARNING_RATE,
     )
 
-    # train_loader, val_loader = get_loaders()
+    train_loader = 
     scaler = torch.cuda.amp.grad_scaler.GradScaler()
 
     for epoch in range(NUM_EPOCHS):
-        train(train_loader, model, optimizer, loss, scaler)
+        train(
+            train_loader, 
+            model, 
+            optimizer, 
+            loss, scaler
+            )
