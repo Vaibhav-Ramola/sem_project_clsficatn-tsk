@@ -1,5 +1,3 @@
-import string
-import torch
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
@@ -11,8 +9,8 @@ class GSQDataset(Dataset):
         self.img_apth = img_path
         self.labels_path = labels_path
         self.transforms = transforms
-        self.images = np.load(img_path)   
-        self.labels = np.load(labels_path)
+        self.images = np.load(img_path, allow_pickle=True)   
+        self.labels = np.load(labels_path, allow_pickle=True)
 
     def __len__(self):
         return self.labels.shape[0]

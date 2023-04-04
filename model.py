@@ -54,7 +54,8 @@ class MSA(nn.Module):
         self.embed_size = embed_size
         self.num_heads = num_heads
         self.qkv = nn.Linear(embed_size, 3 * embed_size)
-        self.rearg = Rearrange('b n (h qkv e) -> b qkv h n e', h=num_heads, qkv=3)
+        self.rearg = Rearrange(
+            'b n (h qkv e) -> qkv b h n e', h=num_heads, qkv=3)
         self.linear = nn.Linear(self.embed_size, self.embed_size)
     
     def forward(self, x):
@@ -64,7 +65,7 @@ class MSA(nn.Module):
         queries, keys, values = qkv[0], qkv[1], qkv[2]
         print(f"Q : {queries.shape}\tK : {keys.shape}")
         attention = torch.einsum('bhqd,bhkd->bhqk', queries, keys)
-        softmax_attention = F.softmax(attention, dim=-1) // (self.embed_size ** (1/2))
+        softmax_attention = torch.div(F.softmax(attention, dim=-1) , (self.embed_size ** (1/2)), rounding_mode='trunc')
         # dim = -1 means apply softmax along the last dimension i.e. along the columns
         context = torch.einsum('bhql,bhld->bhqd', softmax_attention, values)
         context = rearrange(context, 'b h v d -> b v (h d)')
@@ -141,8 +142,8 @@ class VIT(nn.Module):
 
         return x
     
-if __name__ == '__main__':
-    print('Started')
-    model = VIT()
-    test = torch.randn(size=(3, 5, 32, 32))
-    print(f'output form the model : {model(test)}')
+# if __name__ == '__main__':
+#     print('Started')
+#     model = VIT()
+#     test = torch.randn(size=(3, 5, 32, 32))
+#     print(f'output form the model : {model(test)}')

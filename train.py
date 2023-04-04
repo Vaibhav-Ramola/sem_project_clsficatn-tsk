@@ -21,7 +21,7 @@ BATCH_SIZE = 1
 NUM_EPOCHS = 5
 IMAGE_HEIGHT = 32
 IMAGE_WIDTH = 32
-EMBED_SIZE = 786
+EMBED_SIZE = 784
 PIN_MEMORY = True
 LOAD_MODEL = False
 
@@ -45,7 +45,7 @@ def train(loader, model, optimizer, loss, scaler):
 
     # Forward propagation
     with torch.cuda.amp.autocast_mode.autocast():       # Using FP16
-        predictions = model(data)
+        predictions = model(data['image'])
         loss = loss(predictions, targets)
 
     print(f'Loss : {loss}')
