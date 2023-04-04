@@ -11,7 +11,7 @@ class GSQDataset(Dataset):
         self.img_apth = img_path
         self.labels_path = labels_path
         self.transforms = transforms
-        self.images = np.load(img_path)
+        self.images = np.load(img_path)   
         self.labels = np.load(labels_path)
 
     def __len__(self):
@@ -20,7 +20,13 @@ class GSQDataset(Dataset):
     def __getitem__(self, index):
         image = self.images[index]
         label = self.labels[index]
+        if label=='STAR':
+            label = np.array([1,0,0])
+        elif label=='QSO':
+            label = np.array([0,1,0])
+        elif label=='GALAXY':
+            label = np.array([0,0,1])
         if self.transforms:
             image = self.transforms(image)
-            
+
         return (image, label)
