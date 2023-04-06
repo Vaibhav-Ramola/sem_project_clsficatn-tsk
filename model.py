@@ -59,13 +59,13 @@ class MSA(nn.Module):
         self.linear = nn.Linear(self.embed_size, self.embed_size)
     
     def forward(self, x):
-        print(x.shape)
+        # print(x.shape)
         qkv = self.qkv(x)
         qkv = self.rearg(qkv)
         queries, keys, values = qkv[0], qkv[1], qkv[2]
-        print(f"Q : {queries.shape}\tK : {keys.shape}")
+        # print(f"Q : {queries.shape}\tK : {keys.shape}")
         attention = torch.einsum('bhqd,bhkd->bhqk', queries, keys)
-        softmax_attention = torch.div(F.softmax(attention, dim=-1) , (self.embed_size ** (1/2)), rounding_mode='trunc')
+        softmax_attention = F.softmax(attention, dim=-1) / (self.embed_size//self.num_heads) ** (1/2)
         # dim = -1 means apply softmax along the last dimension i.e. along the columns
         context = torch.einsum('bhql,bhld->bhqd', softmax_attention, values)
         context = rearrange(context, 'b h v d -> b v (h d)')

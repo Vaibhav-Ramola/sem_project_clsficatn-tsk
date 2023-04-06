@@ -19,12 +19,12 @@ class GSQDataset(Dataset):
         image = self.images[index]
         label = self.labels[index]
         if label=='STAR':
-            label = np.array([1,0,0])
+            label = np.array([1,0,0], dtype=float)
         elif label=='QSO':
-            label = np.array([0,1,0])
+            label = np.array([0,1,0], dtype=float)
         elif label=='GALAXY':
-            label = np.array([0,0,1])
+            label = np.array([0,0,1], dtype=float)
         if self.transforms:
-            image = self.transforms(image)
+            image = self.transforms(image=image)
 
         return (image, label)
